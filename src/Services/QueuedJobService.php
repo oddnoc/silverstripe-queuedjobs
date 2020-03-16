@@ -372,7 +372,7 @@ class QueuedJobService
      *
      * @param string $type Job type
      *
-     * @return QueuedJobDescriptor|false
+     * @return QueuedJobDescriptor|null
      */
     public function getNextPendingJob($type = null)
     {
