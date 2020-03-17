@@ -124,6 +124,15 @@ class QueuedJobService
     private static $worker_ttl = 'PT5M';
 
     /**
+     * Timeout value in seconds for the Initialising state
+     * if a job is stuck in this state longer than this value it's considered stalled
+     *
+     * @var int
+     * @config
+     */
+    private static $initialising_state_ttl = 60;
+
+    /**
      * Timestamp (in seconds) when the queue was started
      *
      * @var int
@@ -434,16 +443,30 @@ class QueuedJobService
                 'JobType' => $queue,
             ]);
 
+        $now = DBDatetime::now();
+
+        /** @var DBDatetime $lastEdited */
+        $lastEdited = DBField::create_field(
+            'Datetime',
+            $now->getTimestamp() - $this->config()->get('initialising_state_ttl')
+        );
+
         // If no steps have been processed since the last run, consider it a broken job
         // Only check jobs that have been viewed before. LastProcessedCount defaults to -1 on new jobs.
         // Only check jobs that are past expiry to ensure another process isn't currently executing the job
-        $now = DBDatetime::now()->Rfc2822();
         $stalledJobs = $runningJobs
             ->filter([
                 'LastProcessedCount:GreaterThanOrEqual' => 0,
-                'Expiry:LessThanOrEqual' => $now,
             ])
-            ->where('"StepsProcessed" = "LastProcessedCount"');
+            ->where('"StepsProcessed" = "LastProcessedCount"')
+            ->whereAny([
+                // either job lock is expired
+                '"Expiry" <= ?' => $now->Rfc2822(),
+                // or job lock was never assigned (maybe there were not enough server resources to kick off the process)
+                // fall back to LastEdited time and only restart those jobs that were left untouched for a small while
+                // this covers the situation where a process is still going to pick up the job
+                '"Expiry" IS NULL AND "LastEdited" <= ?' => $lastEdited->Rfc2822()
+            ]);
 
         foreach ($stalledJobs as $stalledJob) {
             $this->restartStalledJob($stalledJob);

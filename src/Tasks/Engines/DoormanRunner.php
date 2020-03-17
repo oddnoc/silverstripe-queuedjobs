@@ -50,36 +50,6 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
     protected $defaultRules = [];
 
     /**
-     * Override this method if you need a dynamic value for the configuration, for example CMS setting
-     *
-     * @return int
-     */
-    protected function getMaxTicks(): int
-    {
-        return (int) $this->config()->get('max_ticks');
-    }
-
-    /**
-     * Override this method if you need a dynamic value for the configuration, for example CMS setting
-     *
-     * @return int
-     */
-    protected function getTickInterval(): int
-    {
-        return (int) $this->config()->get('tick_interval');
-    }
-
-    /**
-     * Override this method if you need a dynamic value for the configuration, for example CMS setting
-     *
-     * @return string
-     */
-    protected function getChildRunner(): string
-    {
-        return (string) $this->config()->get('child_runner');
-    }
-
-    /**
      * Assign default rules for this task
      *
      * @param array $rules
@@ -189,5 +159,45 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
             sleep($this->getTickInterval());
             $descriptor = $service->getNextPendingJob($queue);
         }
+    }
+
+    /**
+     * Override this method if you need a dynamic value for the configuration, for example CMS setting
+     *
+     * @return int
+     */
+    protected function getMaxTicks(): int
+    {
+        return (int) $this->config()->get('max_ticks');
+    }
+
+    /**
+     * Override this method if you need a dynamic value for the configuration, for example CMS setting
+     *
+     * @return int
+     */
+    protected function getTickInterval(): int
+    {
+        return (int) $this->config()->get('tick_interval');
+    }
+
+    /**
+     * Override this method if you need a dynamic value for the configuration, for example CMS setting
+     *
+     * @return string
+     */
+    protected function getChildRunner(): string
+    {
+        return (string) $this->config()->get('child_runner');
+    }
+
+    /**
+     * @param string $queue
+     * @return QueuedJobDescriptor|null
+     * @deprecated 5.0
+     */
+    protected function getNextJobDescriptorWithoutMutex($queue)
+    {
+        return $this->getService()->getNextPendingJob($queue);
     }
 }

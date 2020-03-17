@@ -325,16 +325,13 @@ class QueuedJobDescriptor extends DataObject
     }
 
     /**
-     * @return FieldList
+     * List all possible job statuses, useful for forms and filters
+     *
+     * @return array
      */
-    public function getCMSFields()
+    public function getJobStatusValues(): array
     {
-        $fields = parent::getCMSFields();
-        $fields->replaceField(
-            'JobType',
-            new DropdownField('JobType', $this->fieldLabel('JobType'), $this->getJobTypeValues())
-        );
-        $statuses = [
+        return [
             QueuedJob::STATUS_NEW,
             QueuedJob::STATUS_INIT,
             QueuedJob::STATUS_RUN,
@@ -344,6 +341,19 @@ class QueuedJobDescriptor extends DataObject
             QueuedJob::STATUS_CANCELLED,
             QueuedJob::STATUS_BROKEN,
         ];
+    }
+
+    /**
+     * @return FieldList
+     */
+    public function getCMSFields()
+    {
+        $fields = parent::getCMSFields();
+        $fields->replaceField(
+            'JobType',
+            DropdownField::create('JobType', $this->fieldLabel('JobType'), $this->getJobTypeValues())
+        );
+        $statuses = $this->getJobStatusValues();
         $fields->replaceField(
             'JobStatus',
             DropdownField::create('JobStatus', $this->fieldLabel('JobStatus'), array_combine($statuses, $statuses))
