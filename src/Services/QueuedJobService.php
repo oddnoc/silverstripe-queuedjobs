@@ -1003,7 +1003,6 @@ class QueuedJobService
                             if ($jobDescriptor->JobStatus != QueuedJob::STATUS_BROKEN) {
                                 $jobDescriptor->JobStatus = QueuedJob::STATUS_WAIT;
                                 $this->releaseJobLock($jobDescriptor);
-
                             }
                             $broken = true;
                         }
