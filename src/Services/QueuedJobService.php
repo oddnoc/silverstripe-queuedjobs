@@ -612,8 +612,7 @@ class QueuedJobService
      */
     protected function restartStalledJob($stalledJob)
     {
-        // release job lock on the descriptor so it can run again
-        $stalledJob->Worker = null;
+        $this->releaseJobLock($stalledJob);
 
         if ($stalledJob->ResumeCounts < static::config()->get('stall_threshold')) {
             $stalledJob->restart();
@@ -1003,6 +1002,8 @@ class QueuedJobService
                             );
                             if ($jobDescriptor->JobStatus != QueuedJob::STATUS_BROKEN) {
                                 $jobDescriptor->JobStatus = QueuedJob::STATUS_WAIT;
+                                $this->releaseJobLock($jobDescriptor);
+
                             }
                             $broken = true;
                         }
@@ -1015,6 +1016,7 @@ class QueuedJobService
                             ));
                             if ($jobDescriptor->JobStatus != QueuedJob::STATUS_BROKEN) {
                                 $jobDescriptor->JobStatus = QueuedJob::STATUS_WAIT;
+                                $this->releaseJobLock($jobDescriptor);
                             }
                             $broken = true;
                         }
@@ -1473,6 +1475,16 @@ class QueuedJobService
         $expiry = DBField::create_field('Datetime', $time->getTimestamp());
 
         return $expiry->Rfc2822();
+    }
+
+    /**
+     * Release job lock on the descriptor so it can run again
+     *
+     * @param QueuedJobDescriptor $descriptor
+     */
+    protected function releaseJobLock(QueuedJobDescriptor $descriptor): void
+    {
+        $descriptor->Worker = null;
     }
 
     /**
