@@ -2,6 +2,8 @@
 
 namespace Symbiote\QueuedJobs\Tasks\Engines;
 
+use SilverStripe\Core\ClassInfo;
+use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
@@ -16,6 +18,19 @@ use Symbiote\QueuedJobs\Services\QueuedJobService;
 class DoormanRunner extends BaseRunner implements TaskRunnerEngine
 {
     use Configurable;
+
+    /**
+     * @var string[]
+     */
+    protected $defaultRules = [];
+
+    /**
+     * Name of the dev task used to run the child process
+     *
+     * @config
+     * @var string
+     */
+    private static $child_runner = 'ProcessJobQueueChildTask';
 
     /**
      * How many ticks are executed per one @see runQueue method call
@@ -35,31 +50,6 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
     private static $tick_interval = 1;
 
     /**
-     * Name of the dev task used to run the child process
-     *
-     * @config
-     * @var string
-     */
-    private static $child_runner = 'ProcessJobQueueChildTask';
-
-    /**
-     * @var string[]
-     */
-    protected $defaultRules = [];
-
-    /**
-     * Assign default rules for this task
-     *
-     * @param array $rules
-     * @return $this
-     */
-    public function setDefaultRules($rules)
-    {
-        $this->defaultRules = $rules;
-        return $this;
-    }
-
-    /**
      * @return array List of rules
      */
     public function getDefaultRules()
@@ -75,7 +65,7 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
     public function runQueue($queue)
     {
         $service = QueuedJobService::singleton();
-        $logger = $service->getLogger();
+        $logger  = $service->getLogger();
 
         // check if queue can be processed
         if ($service->isAtMaxJobs()) {
@@ -115,8 +105,8 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
             }
         }
 
-        $tickCount = 0;
-        $maxTicks = $this->getMaxTicks();
+        $tickCount  = 0;
+        $maxTicks   = $this->getMaxTicks();
         $descriptor = $service->getNextPendingJob($queue);
 
         while ($manager->tick() || $descriptor) {
@@ -160,23 +150,15 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
     }
 
     /**
-     * Override this method if you need a dynamic value for the configuration, for example CMS setting
+     * Assign default rules for this task
      *
-     * @return int
+     * @param array $rules
+     * @return $this
      */
-    protected function getMaxTicks(): int
+    public function setDefaultRules($rules)
     {
-        return (int) $this->config()->get('max_ticks');
-    }
-
-    /**
-     * Override this method if you need a dynamic value for the configuration, for example CMS setting
-     *
-     * @return int
-     */
-    protected function getTickInterval(): int
-    {
-        return (int) $this->config()->get('tick_interval');
+        $this->defaultRules = $rules;
+        return $this;
     }
 
     /**
@@ -190,6 +172,16 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
     }
 
     /**
+     * Override this method if you need a dynamic value for the configuration, for example CMS setting
+     *
+     * @return int
+     */
+    protected function getMaxTicks(): int
+    {
+        return (int) $this->config()->get('max_ticks');
+    }
+
+    /**
      * @param string $queue
      * @return QueuedJobDescriptor|null
      * @deprecated 5.0
@@ -197,5 +189,15 @@ class DoormanRunner extends BaseRunner implements TaskRunnerEngine
     protected function getNextJobDescriptorWithoutMutex($queue)
     {
         return $this->getService()->getNextPendingJob($queue);
+    }
+
+    /**
+     * Override this method if you need a dynamic value for the configuration, for example CMS setting
+     *
+     * @return int
+     */
+    protected function getTickInterval(): int
+    {
+        return (int) $this->config()->get('tick_interval');
     }
 }
